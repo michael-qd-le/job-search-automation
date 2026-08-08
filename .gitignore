@@ -6,6 +6,8 @@ venv/
 
 # Environment secrets
 .env
+credentials.json
 
 # macOS junk
 .DS_Store
+
