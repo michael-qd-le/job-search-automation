@@ -3,13 +3,15 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from dotenv import load_dotenv
+from google import genai
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 TOKEN_FILE = "token.json"
 CREDENTIALS_FILE = "credentials.json"
 KEYWORDS = "received OR \"in touch\" OR \"update soon\" OR \"proceed with another candidate\" OR \"all the best\" OR \"carefully considering your experience and skills\" OR \"first interview\" OR \"availability\" OR \"next step\" OR \"proceed\" OR \"schedule\" OR \"get to know you\" OR \"book\" OR \"conversation\" OR \"stage\" OR \"offer\" OR \"contract\""
 
-
+load_dotenv()
 
 def get_gmail_service():
     creds = None
@@ -47,8 +49,43 @@ def main():
         snippet = msg_data.get("snippet")
         print(sender, subject, date, snippet)
 
+
+def classify_email(client, sender, subject, snippet):
+    prompt = f"""
+Among the emails select the ones that are job related and sort them out through the 5 categories below.
+
+Classify the email by status (the categories) and key dates (e.g. interview date mentioned in the email)
+
+Applied: We've received your application, We're currently reviewing your application, will be in touch with next steps, We'll carefully review your profile and be in touch with an update soon, your application was sent, We just got your application
+Process ongoing: I would like to set up a first digital interview, Please give me a few options when you are available for next week. It went well and would like for you to continue. Next step is to have a digital call with me. We would like for you to proceed and do the case. We would like to schedule a Phone Interview. Please click the Schedule Interview button below. After reviewing your application documents, I would like to get to know you better. Please book an appointment for a phone call. I look forward to our conversation! Our recruiting team is delighted to invite you to proceed to the assessment stage.
+Rejected: Unfortunately, After careful consideration, we don't feel this role is likely to be a perfect fit. Wish you the very best of luck in your future endeavours. You didn't go all the way in this recruitment process. In the face of strong competition, we have decided to proceed with another candidate.
+Offer: Congratulations! We are excited to provide you with an offer of employment. You have given us the privilege to be a part of your career. We would like to welcome you to a digital contract signing.
+Not Job-related (false positive): Emails from Glassdoor, JobLeads, Github, Indeed, bootcamp
+
+Respond in exactly this format:
+Category: <one of the 5 categories>
+Date: <any date mentioned, or "None">
+
+Email details:
+Sender: {sender}
+Subject: {subject}
+Snippet: {snippet}
+"""
+    response = client.models.generate_content(
+        model="gemini-3.5-flash",
+        contents=prompt
+    )
+    return response.text
+
+
 if __name__ == "__main__":
-    main()
+    client = genai.Client()
+    result = classify_email(client, "Viaplay Group <no-reply@nent.teamtailor-mail.com>", "Viaplay Group: one new job matching your profile", "Michael, we have one new job that matches your profile. Since you have Connected to Viaplay Group, you will always be updated with the latest job openings that fit your profile.")
+    print(result)
+
+
+
+
 
 
 
