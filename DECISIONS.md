@@ -28,3 +28,7 @@ For each matched email, the script extracts sender, subject, date, and a short s
 
 ## LLM provider: switched to Google Gemini API instead of Anthropic
 Originally scoped to use Anthropic's API, but Anthropic requires a payment method on file even to use free credits. Switched to Google's Gemini API (via Google AI Studio), which is genuinely free with no card required. Trade-offs accepted: free-tier prompts/responses may be used by Google to improve their products (relevant since this sends real email content), free-tier limits have been reduced before and aren't guaranteed to stay generous, and current rate limits (~1,000 requests/day) are fine for this project's personal scale but would need reassessing if usage grew significantly.
+
+
+## Switched Gemini model to flash-lite due to free-tier daily quota
+The standard gemini-3.5-flash model hit a hard daily cap of 20 requests on the free tier — enough for light testing but not for realistic use. Switched to gemini-3.5-flash-lite, which has a substantially higher free-tier quota and is still fully capable for a straightforward classification task like this one. Also added a 15-second pause between requests to stay under per-minute limits.
