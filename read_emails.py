@@ -1,3 +1,4 @@
+import time
 import os.path
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -36,8 +37,9 @@ def get_header(headers, name):
             return header["value"]
 
 def main():
+    client = genai.Client()
     service = get_gmail_service()
-    results = service.users().messages().list(userId="me", q=KEYWORDS, maxResults=50).execute()
+    results = service.users().messages().list(userId="me", q=KEYWORDS, maxResults=15).execute()
     messages = results.get("messages", [])
     
     for msg in messages:
@@ -47,7 +49,10 @@ def main():
         subject = get_header(headers, "Subject")
         date = get_header(headers, "Date")  
         snippet = msg_data.get("snippet")
-        print(sender, subject, date, snippet)
+        result = classify_email(client, sender, subject, snippet)
+        category, ai_date = parse_classification(result)
+        print(sender, subject, category, ai_date)
+        time.sleep(15)
 
 
 def classify_email(client, sender, subject, snippet):
@@ -72,16 +77,20 @@ Subject: {subject}
 Snippet: {snippet}
 """
     response = client.models.generate_content(
-        model="gemini-3.5-flash",
+        model="gemini-3.5-flash-lite",
         contents=prompt
     )
     return response.text
 
+def parse_classification(response_text):
+    lines = response_text.strip().split("\n")
+    category = lines[0].split(":", 1)[1].strip()
+    date = lines[1].split(":", 1)[1].strip()
+    return category, date
+
 
 if __name__ == "__main__":
-    client = genai.Client()
-    result = classify_email(client, "Viaplay Group <no-reply@nent.teamtailor-mail.com>", "Viaplay Group: one new job matching your profile", "Michael, we have one new job that matches your profile. Since you have Connected to Viaplay Group, you will always be updated with the latest job openings that fit your profile.")
-    print(result)
+    main()
 
 
 
