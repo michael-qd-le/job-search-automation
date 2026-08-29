@@ -68,8 +68,8 @@ def main():
         date = get_header(headers, "Date")  
         body = get_body(msg_data["payload"])
         result = classify_email(client, sender, subject, body)
-        category, ai_date = parse_classification(result)
-        print(sender, subject, category, ai_date)
+        category, ai_date, company, role = parse_classification(result)
+        print(sender, subject, category, ai_date, company, role)
         time.sleep(15)
 
 
@@ -88,6 +88,8 @@ Not Job-related (false positive): Emails from Glassdoor, JobLeads, Github, Indee
 Respond in exactly this format:
 Category: <one of the 5 categories>
 Date: <any date mentioned, or "None">
+Company: <the company name>
+Role: <the job title/role mentioned, or "None" if unclear>
 
 Email details:
 Sender: {sender}
@@ -104,7 +106,9 @@ def parse_classification(response_text):
     lines = response_text.strip().split("\n")
     category = lines[0].split(":", 1)[1].strip()
     date = lines[1].split(":", 1)[1].strip()
-    return category, date
+    company = lines[2].split(":", 1)[1].strip()
+    role = lines[3].split(":", 1)[1].strip()
+    return category, date, company, role
 
 
 if __name__ == "__main__":

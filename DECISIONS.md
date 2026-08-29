@@ -39,3 +39,7 @@ Testing revealed the short Gmail snippet sometimes cut off before key classifyin
 
 ## Added graceful fallback for expired OAuth tokens
 Testing-mode refresh tokens expire after 7 days (a known Google policy, already noted above), and the original code crashed with an unhandled error when this happened, requiring manual deletion of token.json. Added try/except handling around the refresh call so an expired token automatically triggers a fresh login flow instead of crashing — removes the manual cleanup step, though the user must still complete the browser login roughly every 7 days.
+
+
+## Data layer: two SQLite tables, database file excluded from git
+Chose SQLite over CSV for the tracker — needed reliable "find and update an existing record" behavior (e.g., updating an application's status as new emails arrive), which plain CSV handling makes more manual and error-prone. Split into two tables rather than one: `applications` (from classified Gmail emails) and `opportunities` (from JobTech discovery), reflecting the natural discover-then-apply funnel. The database file itself (tracker.db) is excluded from git, same as credentials.json and token.json — it will contain real personal application data, not just secrets, but the privacy reasoning is the same: never belongs in a public repo.

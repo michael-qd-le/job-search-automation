@@ -8,6 +8,7 @@ venv/
 .env
 credentials.json
 token.json
+tracker.db
 
 # macOS junk
 .DS_Store
