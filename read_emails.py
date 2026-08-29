@@ -1,5 +1,7 @@
 import time
 import os.path
+import base64
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -18,23 +20,39 @@ def get_gmail_service():
     creds = None
     if os.path.exists(TOKEN_FILE):
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-    if creds and creds.valid:
-        pass
-    elif creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
+
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+        except RefreshError:
+            creds = None
+
+    if not creds or not creds.valid:
         flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
         creds = flow.run_local_server(port=0)
+
     with open(TOKEN_FILE, "w") as token:
         token.write(creds.to_json())
 
     service = build("gmail", "v1", credentials=creds)
     return service
 
+
 def get_header(headers, name):
     for header in headers:
         if header["name"] == name:
             return header["value"]
+
+def get_body(payload):
+    if "parts" in payload:
+        for part in payload["parts"]:
+            if part["mimeType"] == "text/plain":
+                data = part["body"]["data"]
+                return base64.urlsafe_b64decode(data).decode("utf-8")
+    else:
+        data = payload["body"]["data"]
+        return base64.urlsafe_b64decode(data).decode("utf-8")
+    return ""
 
 def main():
     client = genai.Client()
@@ -48,14 +66,14 @@ def main():
         sender = get_header(headers, "From")
         subject = get_header(headers, "Subject")
         date = get_header(headers, "Date")  
-        snippet = msg_data.get("snippet")
-        result = classify_email(client, sender, subject, snippet)
+        body = get_body(msg_data["payload"])
+        result = classify_email(client, sender, subject, body)
         category, ai_date = parse_classification(result)
         print(sender, subject, category, ai_date)
         time.sleep(15)
 
 
-def classify_email(client, sender, subject, snippet):
+def classify_email(client, sender, subject, body):
     prompt = f"""
 Among the emails select the ones that are job related and sort them out through the 5 categories below.
 
@@ -74,7 +92,7 @@ Date: <any date mentioned, or "None">
 Email details:
 Sender: {sender}
 Subject: {subject}
-Snippet: {snippet}
+Email body: {body}
 """
     response = client.models.generate_content(
         model="gemini-3.5-flash-lite",
