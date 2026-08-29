@@ -38,9 +38,13 @@ def search_jobs(keyword, limit=10):
 
 
 if __name__ == "__main__":
+    seen_ids = set()
     for role in TARGET_ROLES[:3]:
         jobs = search_jobs(role, limit=5)
         for job in jobs:
+            if job["id"] in seen_ids:
+                continue
+            seen_ids.add(job["id"])
             headline = job["headline"]
             employer = job["employer"]["name"]
             location = job["workplace_address"]["municipality"]
@@ -50,7 +54,6 @@ if __name__ == "__main__":
             deadline = job["application_deadline"]
             url = job["webpage_url"]
             print(headline, employer, location, employment_type, must_have_languages, nice_to_have_languages, deadline, url)
-
 
 
 
