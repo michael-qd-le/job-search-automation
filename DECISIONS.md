@@ -32,3 +32,10 @@ Originally scoped to use Anthropic's API, but Anthropic requires a payment metho
 
 ## Switched Gemini model to flash-lite due to free-tier daily quota
 The standard gemini-3.5-flash model hit a hard daily cap of 20 requests on the free tier — enough for light testing but not for realistic use. Switched to gemini-3.5-flash-lite, which has a substantially higher free-tier quota and is still fully capable for a straightforward classification task like this one. Also added a 15-second pause between requests to stay under per-minute limits.
+
+
+## Switched from email snippet to full email body for classification
+Testing revealed the short Gmail snippet sometimes cut off before key classifying language (e.g., a rejection's actual "unfortunately" language appearing after the snippet's truncation point), causing misclassification. Added a get_body function that extracts and base64-decodes the full plain-text email body instead, giving the AI complete context. Confirmed improvement: subsequent test runs correctly caught rejections that snippet-only classification had missed.
+
+## Added graceful fallback for expired OAuth tokens
+Testing-mode refresh tokens expire after 7 days (a known Google policy, already noted above), and the original code crashed with an unhandled error when this happened, requiring manual deletion of token.json. Added try/except handling around the refresh call so an expired token automatically triggers a fresh login flow instead of crashing — removes the manual cleanup step, though the user must still complete the browser login roughly every 7 days.
