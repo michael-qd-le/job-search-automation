@@ -43,3 +43,16 @@ Testing-mode refresh tokens expire after 7 days (a known Google policy, already 
 
 ## Data layer: two SQLite tables, database file excluded from git
 Chose SQLite over CSV for the tracker — needed reliable "find and update an existing record" behavior (e.g., updating an application's status as new emails arrive), which plain CSV handling makes more manual and error-prone. Split into two tables rather than one: `applications` (from classified Gmail emails) and `opportunities` (from JobTech discovery), reflecting the natural discover-then-apply funnel. The database file itself (tracker.db) is excluded from git, same as credentials.json and token.json — it will contain real personal application data, not just secrets, but the privacy reasoning is the same: never belongs in a public repo.
+
+
+## Decision: Cross-table matching between opportunities and applications
+**Date:** 2026-08-29
+**Decision:** When an application is saved, any matching row in `opportunities` (same company + role, case-insensitive) is deleted. When a new opportunity is found, it's skipped if a matching row already exists in `applications`.
+**Reasoning:** Opportunities and applications were two independent tables with no link between them. Without this, a job you'd already applied to would keep showing up as an "opportunity to apply to," and re-running job_search.py could re-add jobs you've already applied for.
+**Trade-off / known limitation:** Matching is exact on company + role (case-insensitive only) — not fuzzy. If the AI-extracted company/role text from an email differs meaningfully from the JobTech listing (e.g. "IT Tekniker" vs "IT-tekniker"), the match will be missed and the job won't disappear from opportunities. Accepted as a v1 limitation; can be revisited with fuzzy matching later if it causes real friction.
+
+## Decision: Manual job entry (future consideration)
+**Date:** 2026-08-29
+**Decision (deferred, not built):** v1 only sources opportunities from the JobTech API (Arbetsförmedlingen), since LinkedIn/Indeed don't offer a usable free API. A future dashboard could let the user manually add jobs found on those platforms into the opportunities table.
+**Reasoning:** JobTech coverage is Sweden-specific and public-sector-only in origin; real job search also happens on LinkedIn/Indeed, which this project can't scrape/query directly.
+**Trade-off:** Manually-added jobs would still need to plug into the same applications-matching logic (so an emailed application still links back to it) — not just be a separate, disconnected list. Left for task 8/9 scoping, not part of the data layer built today.
