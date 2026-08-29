@@ -1,4 +1,5 @@
 import requests
+from database import save_opportunity
 
 TARGET_ROLES = [
     "CRM specialist",
@@ -53,6 +54,7 @@ if __name__ == "__main__":
             nice_to_have_languages = job["nice_to_have"]["languages"]
             deadline = job["application_deadline"]
             url = job["webpage_url"]
+            save_opportunity(employer, headline, location, employment_type, deadline, url, job["id"])
             print(headline, employer, location, employment_type, must_have_languages, nice_to_have_languages, deadline, url)
 
 

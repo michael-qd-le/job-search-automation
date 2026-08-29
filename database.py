@@ -41,3 +41,56 @@ def init_db():
 if __name__ == "__main__":
     init_db()
     print("Database initialized.")
+
+
+import sqlite3
+from datetime import datetime
+
+DB_FILE = "tracker.db"
+
+def save_application(company, role, status, date, sender, subject, gmail_message_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id FROM applications WHERE company = ? AND role = ?",
+        (company, role)
+    )
+    existing = cursor.fetchone()
+
+    now = datetime.now().isoformat()
+
+    if existing:
+        cursor.execute("""
+            UPDATE applications
+            SET status = ?, date = ?, sender = ?, subject = ?, gmail_message_id = ?, last_updated = ?
+            WHERE id = ?
+        """, (status, date, sender, subject, gmail_message_id, now, existing[0]))
+    else:
+        cursor.execute("""
+            INSERT INTO applications (company, role, status, date, sender, subject, gmail_message_id, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (company, role, status, date, sender, subject, gmail_message_id, now))
+
+    conn.commit()
+    conn.close()
+
+def save_opportunity(company, role, location, employment_type, deadline, url, jobtech_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id FROM opportunities WHERE jobtech_id = ?",
+        (jobtech_id,)
+    )
+    existing = cursor.fetchone()
+
+    if not existing:
+        now = datetime.now().isoformat()
+        cursor.execute("""
+            INSERT INTO opportunities (company, role, location, employment_type, deadline, url, jobtech_id, date_found)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (company, role, location, employment_type, deadline, url, jobtech_id, now))
+
+    conn.commit()
+    conn.close()

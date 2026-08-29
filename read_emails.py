@@ -8,6 +8,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 from google import genai
+from database import save_application
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 TOKEN_FILE = "token.json"
@@ -69,6 +70,7 @@ def main():
         body = get_body(msg_data["payload"])
         result = classify_email(client, sender, subject, body)
         category, ai_date, company, role = parse_classification(result)
+        save_application(company, role, category, ai_date, sender, subject, msg["id"])
         print(sender, subject, category, ai_date, company, role)
         time.sleep(15)
 
