@@ -39,7 +39,7 @@ def search_jobs(keyword, limit=10):
 
 if __name__ == "__main__":
     seen_ids = set()
-    for role in TARGET_ROLES[:3]:
+    for role in TARGET_ROLES:
         jobs = search_jobs(role, limit=5)
         for job in jobs:
             if job["id"] in seen_ids:
