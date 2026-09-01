@@ -8,18 +8,19 @@ Job hunting at volume is hard to track by memory — which applications are wher
 
 ## How it works
 
-- Reads my Gmail inbox (read-only) to detect application-related emails, with automatic re-authorization if the access token expires
-- Uses an LLM to classify each email (applied / interview / rejection) and extract key details (company, role, date)
+- Reads my Gmail inbox (read-only) to detect application-related emails, with automatic re-authorization if the access token expires, and skips any email already processed before
+- Uses an LLM to classify each email (applied / interview / rejection / offer / not job-related) and extract key details (company, role, date)
 - Searches Sweden's public JobTech API (Arbetsförmedlingen) for new matching postings
-- Tracks everything across two linked views: applied jobs and job opportunities. If an opportunity is applied to, it's automatically removed from the opportunities list
+- Tracks everything across three views in a Streamlit dashboard: an Applications Kanban board (grouped by status), an Opportunities list, and a False Positive review queue (misclassified emails can be restored to the tracker with the correct status, or permanently dismissed)
 
 ## Status
 
-- Gmail inbox integration complete, including automatic token reauthorization if expired
+- Gmail inbox integration complete, including automatic token reauthorization and duplicate-email prevention
 - LLM email classification complete
 - JobTech API (Arbetsförmedlingen) search integration complete
 - Two-table database in place, linking applied jobs and opportunities so applying to a job removes it from the opportunities list
-- Next: building the dashboard/frontend
+- Dashboard built with Streamlit: Applications Kanban board, Opportunities list, and False Positive review queue, all fully functional
+- Next: one-time historical email scan, then visual polish, then Part 2 (spontaneous applications)
 
 ## Why this repo is public
 

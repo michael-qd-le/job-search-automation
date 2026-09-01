@@ -56,3 +56,21 @@ Chose SQLite over CSV for the tracker — needed reliable "find and update an ex
 **Decision (deferred, not built):** v1 only sources opportunities from the JobTech API (Arbetsförmedlingen), since LinkedIn/Indeed don't offer a usable free API. A future dashboard could let the user manually add jobs found on those platforms into the opportunities table.
 **Reasoning:** JobTech coverage is Sweden-specific and public-sector-only in origin; real job search also happens on LinkedIn/Indeed, which this project can't scrape/query directly.
 **Trade-off:** Manually-added jobs would still need to plug into the same applications-matching logic (so an emailed application still links back to it) — not just be a separate, disconnected list. Left for task 8/9 scoping, not part of the data layer built today.
+
+## Decision: Dashboard built with Streamlit
+**Date:** 2026-08-30
+**Decision:** Use Streamlit (pure Python) for the dashboard rather than Flask+HTML or a static HTML export.
+**Reasoning:** No HTML/CSS/JS required — dashboard logic stays in Python, reading directly from `tracker.db`. Streamlit is also a commonly used tool in data/analytics and business-analyst roles, making it directly relevant to the jobs being targeted.
+**Trade-off:** Less "traditional" web development experience than Flask+HTML would give; if a future goal shifts toward full-stack/web-dev roles specifically, Flask would be the more standard skill to demonstrate instead.
+
+## Decision: False Positive review queue with permanent dismiss
+**Date:** 2026-08-31
+**Decision:** Emails classified as "Not Job-related (false positive)" are hidden from the main tracker by default but reviewable in a dedicated dashboard view, where each can be restored (with a manually chosen correct status) or permanently deleted.
+**Reasoning:** AI classification isn't perfect — this gives a way to catch and fix misclassifications without cluttering the main tracker with obvious non-matches by default.
+**Trade-off:** Deleting a false positive removes it from `applications` entirely, which on its own would let the same email reappear if reprocessed — solved by a separate `dismissed_emails` table (see next entry).
+
+## Decision: Email dedup via a dedicated seen_emails table
+**Date:** 2026-08-31
+**Decision:** Every email read_emails.py successfully processes gets a permanent record in a new `seen_emails` table (keyed by Gmail message ID), checked before reprocessing any email.
+**Reasoning:** Initially tried checking for existing `gmail_message_id` values directly in the `applications` table, but `save_application()` intentionally merges multiple emails sharing the same company/role into one evolving row — which silently overwrote earlier emails' message IDs, breaking dedup for any recurring company/role pairing (generic newsletters, multi-email application threads). A dedicated table, untouched by that merge logic, fixes this permanently.
+**Trade-off:** None significant — this table is small, append-only, and purely internal bookkeeping (never shown in the dashboard).
