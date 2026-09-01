@@ -34,8 +34,23 @@ def init_db():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS dismissed_emails (
+            gmail_message_id TEXT, date_dismissed TEXT
+        )
+    """)
+  
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS seen_emails (
+            gmail_message_id TEXT PRIMARY KEY,
+            date_seen TEXT
+        )
+    """) 
+  
     conn.commit()
     conn.close()
+
+
 
 
 if __name__ == "__main__":
@@ -78,5 +93,20 @@ def save_opportunity(company, role, location, employment_type, deadline, url, jo
         now = datetime.now().isoformat()
         cursor.execute("""INSERT INTO opportunities (company, role, location, employment_type, deadline, url, jobtech_id, date_found) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (company, role, location, employment_type, deadline, url, jobtech_id, now))
+    conn.commit()
+    conn.close()
+
+def is_already_processed(gmail_message_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT gmail_message_id FROM seen_emails WHERE gmail_message_id = ?", (gmail_message_id,))
+    result = cursor.fetchone()
+    conn.close()
+    return result is not None
+
+def mark_email_seen(gmail_message_id):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO seen_emails (gmail_message_id, date_seen) VALUES (?, ?)", (gmail_message_id, datetime.now().isoformat()))
     conn.commit()
     conn.close()

@@ -8,12 +8,12 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 from google import genai
-from database import save_application
+from database import save_application, is_already_processed, mark_email_seen
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
 TOKEN_FILE = "token.json"
 CREDENTIALS_FILE = "credentials.json"
-KEYWORDS = "received OR \"in touch\" OR \"update soon\" OR \"proceed with another candidate\" OR \"all the best\" OR \"carefully considering your experience and skills\" OR \"first interview\" OR \"availability\" OR \"next step\" OR \"proceed\" OR \"schedule\" OR \"get to know you\" OR \"book\" OR \"conversation\" OR \"stage\" OR \"offer\" OR \"contract\""
+KEYWORDS = "received OR \"in touch\" OR \"update soon\" OR \"proceed with another candidate\" OR \"all the best\" OR \"carefully considering your experience and skills\" OR \"first interview\" OR \"availability\" OR \"next step\" OR \"proceed\" OR \"schedule\" OR \"get to know you\" OR \"book\" OR \"conversation\" OR \"stage\" OR \"offer\" OR \"contract\" OR \"move forward with candidates whose experience align more closely with the role\""
 
 load_dotenv()
 
@@ -62,6 +62,8 @@ def main():
     messages = results.get("messages", [])
     
     for msg in messages:
+        if is_already_processed(msg["id"]):
+            continue
         msg_data = service.users().messages().get(userId="me", id=msg["id"]).execute()
         headers = msg_data["payload"]["headers"]
         sender = get_header(headers, "From")
@@ -71,6 +73,7 @@ def main():
         result = classify_email(client, sender, subject, body)
         category, ai_date, company, role = parse_classification(result)
         save_application(company, role, category, ai_date, sender, subject, msg["id"])
+        mark_email_seen(msg["id"])
         print(sender, subject, category, ai_date, company, role)
         time.sleep(15)
 
@@ -83,7 +86,7 @@ Classify the email by status (the categories) and key dates (e.g. interview date
 
 Applied: We've received your application, We're currently reviewing your application, will be in touch with next steps, We'll carefully review your profile and be in touch with an update soon, your application was sent, We just got your application
 Process ongoing: I would like to set up a first digital interview, Please give me a few options when you are available for next week. It went well and would like for you to continue. Next step is to have a digital call with me. We would like for you to proceed and do the case. We would like to schedule a Phone Interview. Please click the Schedule Interview button below. After reviewing your application documents, I would like to get to know you better. Please book an appointment for a phone call. I look forward to our conversation! Our recruiting team is delighted to invite you to proceed to the assessment stage.
-Rejected: Unfortunately, After careful consideration, we don't feel this role is likely to be a perfect fit. Wish you the very best of luck in your future endeavours. You didn't go all the way in this recruitment process. In the face of strong competition, we have decided to proceed with another candidate.
+Rejected: Unfortunately, After careful consideration, we don't feel this role is likely to be a perfect fit. Wish you the very best of luck in your future endeavours. You didn't go all the way in this recruitment process. In the face of strong competition, we have decided to proceed with another candidate. Align more closely. Move forward with candidates
 Offer: Congratulations! We are excited to provide you with an offer of employment. You have given us the privilege to be a part of your career. We would like to welcome you to a digital contract signing.
 Not Job-related (false positive): Emails from Glassdoor, JobLeads, Github, Indeed, bootcamp
 
